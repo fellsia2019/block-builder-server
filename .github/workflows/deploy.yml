@@ -121,6 +121,19 @@ jobs:
             set -e
             cd /opt/bb-license-server
             
+            # Move files from deploy-temp to current directory if they exist
+            if [ -d deploy-temp ]; then
+              echo "📦 Moving files from deploy-temp..."
+              mv deploy-temp/* . 2>/dev/null || true
+              mv deploy-temp/.* . 2>/dev/null || true
+              rmdir deploy-temp 2>/dev/null || true
+              echo "✅ Files moved"
+            fi
+            
+            # List current directory for debugging
+            echo "📁 Current directory contents:"
+            ls -la | head -20
+            
             # Load Docker image
             echo "📦 Loading Docker image..."
             if [ -f image.tar.gz ]; then
