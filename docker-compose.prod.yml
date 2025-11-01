@@ -15,7 +15,6 @@ services:
       - postgres_prod_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     networks:
-      - bb-prod-network
       - bb-shared-network
     restart: unless-stopped
     healthcheck:
@@ -40,10 +39,7 @@ services:
     image: bb-license-server:latest
     container_name: bb-license-server-prod
     networks:
-      - bb-prod-network
-      - bb-shared-network:
-          aliases:
-            - license-server
+      - bb-shared-network
     environment:
       NODE_ENV: production
       PORT: 3006
@@ -105,7 +101,6 @@ services:
       license-server:
         condition: service_healthy
     networks:
-      - bb-prod-network
       - bb-shared-network
     restart: unless-stopped
     security_opt:
@@ -121,7 +116,7 @@ volumes:
     driver: local
 
 networks:
-  bb-prod-network:
+  bb-shared-network:
     name: bb-shared-network
     driver: bridge
 
