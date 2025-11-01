@@ -1,41 +1,66 @@
-# Use Node.js 18 LTS
-FROM node:18-alpine
+# Multi-stage build for optimized production image
 
-# Set working directory
+# Stage 1: Build stage
+FROM node:18-alpine AS builder
+
 WORKDIR /app
 
-# Install dependencies for building native modules
+# Install build dependencies
 RUN apk add --no-cache python3 make g++
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source code
-COPY . .
+COPY src ./src
+COPY migrations ./migrations
 
 # Build the application
 RUN npm run build
 
-# Create logs directory
-RUN mkdir -p logs
+# Stage 2: Production stage
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Install only runtime dependencies for native modules (if needed)
+RUN apk add --no-cache dumb-init
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/migrations ./migrations
+
+# Create logs directory with proper permissions
+RUN mkdir -p logs && \
+    chown -R nodejs:nodejs /app
+
+# Switch to non-root user
 USER nodejs
 
 # Expose port
 EXPOSE 3006
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3006/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3006/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]

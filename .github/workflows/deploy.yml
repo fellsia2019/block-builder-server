@@ -1,0 +1,164 @@
+name: Deploy Block Builder License Server
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  PROJECT_DIR: .
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          docker build -t bb-license-server:${{ github.sha }} -t bb-license-server:latest -f Dockerfile .
+
+      - name: Save Docker image to tar
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          docker save bb-license-server:latest -o image.tar
+          gzip image.tar
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_SSH_PORT || 22 }}
+          source: "${{ env.PROJECT_DIR }}/"
+          target: "/opt/bb-license-server"
+          overwrite: true
+          exclude: |
+            node_modules
+            dist
+            logs
+            .git
+            *.log
+            image.tar.gz
+            image.tar
+
+      - name: Upload Docker image to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_SSH_PORT || 22 }}
+          source: "${{ env.PROJECT_DIR }}/image.tar.gz"
+          target: "/opt/bb-license-server/"
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/bb-license-server
+            
+            # Load Docker image
+            echo "📦 Loading Docker image..."
+            if [ -f image.tar.gz ]; then
+              gunzip -c image.tar.gz | docker load
+              rm -f image.tar.gz
+            else
+              echo "⚠️  image.tar.gz not found, skipping image load"
+            fi
+            
+            # Ensure .env file exists
+            if [ ! -f .env ]; then
+              echo "⚠️  .env file not found, creating from example..."
+              if [ -f .env.production.example ]; then
+                cp .env.production.example .env
+                echo "❌ Please configure .env file on server before deploying!"
+                exit 1
+              else
+                echo "❌ .env.production.example not found!"
+                exit 1
+              fi
+            fi
+            
+            # Make remote-deploy.sh executable if it exists
+            if [ -f remote-deploy.sh ]; then
+              chmod +x remote-deploy.sh
+            fi
+            
+            # Detect docker compose command (docker compose or docker-compose)
+            if docker compose version > /dev/null 2>&1; then
+              DOCKER_COMPOSE_CMD="docker compose"
+            elif docker-compose --version > /dev/null 2>&1; then
+              DOCKER_COMPOSE_CMD="docker-compose"
+            else
+              echo "❌ Neither 'docker compose' nor 'docker-compose' found!"
+              exit 1
+            fi
+            
+            echo "📦 Using: $DOCKER_COMPOSE_CMD"
+            
+            # Stop existing containers
+            echo "🛑 Stopping existing containers..."
+            $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml down || true
+            
+            # Build/rebuild nginx if needed (only on first deploy or config changes)
+            echo "🔨 Building nginx container..."
+            $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml build nginx || true
+            
+            # Pull latest postgres image
+            echo "🔄 Pulling base images..."
+            $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml pull postgres || true
+            
+            # Start services with new image
+            echo "🚀 Starting services..."
+            $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml up -d
+            
+            # Cleanup old images
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f || true
+            
+            # Wait for health check
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 15
+            
+            # Check health
+            echo "🏥 Checking service health..."
+            MAX_RETRIES=5
+            RETRY=0
+            while [ $RETRY -lt $MAX_RETRIES ]; do
+              if curl -f http://localhost/health > /dev/null 2>&1; then
+                echo "✅ Services are healthy!"
+                break
+              fi
+              RETRY=$((RETRY + 1))
+              if [ $RETRY -lt $MAX_RETRIES ]; then
+                echo "⏳ Retry $RETRY/$MAX_RETRIES..."
+                sleep 5
+              else
+                echo "⚠️  Health check failed after $MAX_RETRIES attempts."
+                echo "Check logs with: $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml logs"
+              fi
+            done
+            
+            # Show status
+            echo "📊 Service status:"
+            $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml ps
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ${{ env.PROJECT_DIR }}/image.tar.gz
+

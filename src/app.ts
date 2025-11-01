@@ -13,6 +13,7 @@ import {
   generalRateLimit 
 } from './middleware/security';
 import { errorHandler, notFoundHandler } from './middleware/validation';
+import { MigrationRunner } from './config/migrate';
 import logger from './utils/logger';
 
 class App {
@@ -96,6 +97,21 @@ class App {
       }
       
       logger.info('Database connected successfully');
+
+      // Run migrations automatically
+      if (process.env['AUTO_MIGRATE'] !== 'false') {
+        try {
+          logger.info('Running database migrations...');
+          const migrationRunner = new MigrationRunner(this.db);
+          await migrationRunner.runMigrations();
+          logger.info('Database migrations completed successfully');
+          // Don't close DB connection - we'll use it for the server
+        } catch (error) {
+          logger.error('Migration failed:', error);
+          // Don't exit - allow server to start even if migrations fail
+          // This allows manual migration fixes
+        }
+      }
 
       this.app.listen(config.port, () => {
         logger.info(`🚀 License Server running on port ${config.port}`);
