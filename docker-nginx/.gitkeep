@@ -1,0 +1,4 @@
+# This folder will contain SSL certificates
+# DO NOT commit real certificates to git
+# Use generate-certs scripts to create self-signed certificates for development
+

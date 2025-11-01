@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bb-postgres-full
+    environment:
+      POSTGRES_DB: block_builder_licenses
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_full_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - bb-full-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    extra_hosts:
+      - "api.blockbuilder:host-gateway"
+
+  # License Server
+  license-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: bb-license-server-full
+    environment:
+      NODE_ENV: development
+      PORT: 3010
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: block_builder_licenses
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_SSL: false
+      JWT_SECRET: dev-jwt-secret-key
+      CORS_ORIGIN: https://api.blockbuilder
+    expose:
+      - "3010"
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bb-full-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    extra_hosts:
+      - "api.blockbuilder:host-gateway"
+
+  # Nginx Reverse Proxy with SSL
+  nginx:
+    build:
+      context: ./docker-nginx
+      dockerfile: Dockerfile
+    container_name: bb-nginx-full
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./docker-nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker-nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - license-server
+    networks:
+      - bb-full-network
+    restart: unless-stopped
+    extra_hosts:
+      - "api.blockbuilder:host-gateway"
+
+volumes:
+  postgres_full_data:
+
+networks:
+  bb-full-network:
+    driver: bridge
