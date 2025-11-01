@@ -26,10 +26,33 @@ jobs:
           docker build -t bb-license-server:${{ github.sha }} -t bb-license-server:latest -f Dockerfile .
 
       - name: Save Docker image to tar
-        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           docker save bb-license-server:latest -o image.tar
           gzip image.tar
+
+      - name: Prepare files for deployment
+        run: |
+          # Create temporary directory with only necessary files
+          mkdir -p deploy-temp
+          
+          # Copy necessary files and directories
+          cp -r src deploy-temp/ || true
+          cp -r migrations deploy-temp/ || true
+          cp -r docker-nginx deploy-temp/ || true
+          cp package.json deploy-temp/ || true
+          cp package-lock.json deploy-temp/ || true
+          cp tsconfig.json deploy-temp/ || true
+          cp Dockerfile deploy-temp/ || true
+          cp Dockerfile.dev deploy-temp/ || true
+          cp docker-compose.prod.yml deploy-temp/ || true
+          cp docker-compose.full.yml deploy-temp/ || true
+          cp .env.production.example deploy-temp/ || true
+          cp .dockerignore deploy-temp/ || true
+          [ -f remote-deploy.sh ] && cp remote-deploy.sh deploy-temp/ || true
+          [ -f start.sh ] && cp start.sh deploy-temp/ || true
+          
+          # Set proper permissions
+          chmod -R 755 deploy-temp
 
       - name: Copy files to server
         uses: appleboy/scp-action@v0.1.7
@@ -38,17 +61,9 @@ jobs:
           username: ${{ secrets.VDS_USER }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_SSH_PORT || 22 }}
-          source: "${{ env.PROJECT_DIR }}/"
+          source: "deploy-temp/*"
           target: "/opt/bb-license-server"
           overwrite: true
-          exclude: |
-            node_modules
-            dist
-            logs
-            .git
-            *.log
-            image.tar.gz
-            image.tar
 
       - name: Upload Docker image to server
         uses: appleboy/scp-action@v0.1.7
@@ -57,7 +72,7 @@ jobs:
           username: ${{ secrets.VDS_USER }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_SSH_PORT || 22 }}
-          source: "${{ env.PROJECT_DIR }}/image.tar.gz"
+          source: "image.tar.gz"
           target: "/opt/bb-license-server/"
 
       - name: Deploy on server
@@ -160,5 +175,6 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          rm -f ${{ env.PROJECT_DIR }}/image.tar.gz
+          rm -f image.tar.gz
+          rm -rf deploy-temp
 
