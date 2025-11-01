@@ -9,9 +9,9 @@
 ### Секрет 1: VDS_HOST
 ```
 Name: VDS_HOST
-Value: vds.server1
+Value: your-server.example.com
 ```
-(или IP адрес вашего сервера)
+(или IP адрес вашего сервера, например: 192.168.1.100)
 
 ### Секрет 2: VDS_USER
 ```
@@ -49,7 +49,7 @@ cat ~/.ssh/id_rsa
 **Убедитесь, что публичный ключ уже добавлен на сервер:**
 ```bash
 # Проверьте, что можете подключиться
-ssh vds.server1
+ssh your-user@your-server.example.com
 
 # Если подключаетесь без пароля - значит ключ уже настроен ✅
 ```
@@ -70,7 +70,7 @@ ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy
 
 ```bash
 # Скопируйте публичный ключ на сервер
-ssh-copy-id -i ~/.ssh/github_actions_deploy.pub vds.server1
+ssh-copy-id -i ~/.ssh/github_actions_deploy.pub your-user@your-server.example.com
 
 # Или вручную: покажите публичный ключ
 cat ~/.ssh/github_actions_deploy.pub
@@ -108,7 +108,7 @@ Value: 22
 Подключитесь к серверу:
 
 ```bash
-ssh vds.server1
+ssh your-user@your-server.example.com
 ```
 
 ### 2.1. Установка Docker (если еще не установлен)
@@ -317,7 +317,7 @@ sudo ufw --force enable
 
 ```bash
 # Перейдите в директорию server-bb
-cd d:\dev\bb\server-bb
+cd /path/to/your/server-bb
 
 # Добавьте файлы (workflow должен быть в корне репозитория server-bb)
 # Если .github/workflows/ еще нет, создайте:
@@ -341,7 +341,7 @@ git push origin master
 
 ```bash
 # Убедитесь что вы в корне проекта
-cd d:\dev\bb
+cd /path/to/your/project
 
 # Добавьте файлы
 git add .github/workflows/deploy-server-bb.yml
@@ -368,7 +368,7 @@ git push origin master
 После первого деплоя выполните на сервере:
 
 ```bash
-ssh vds.server1
+ssh your-user@your-server.example.com
 cd /opt/bb-license-server
 
 # Создайте .env из примера
@@ -405,7 +405,7 @@ openssl rand -base64 32
 
 1. **Если server-bb в отдельном репозитории:**
    ```bash
-   cd d:\dev\bb\server-bb
+   cd /path/to/your/server-bb
    # Сделайте любой коммит (например, добавьте комментарий в README)
    git commit --allow-empty -m "Trigger deployment"
    git push origin master
@@ -422,7 +422,7 @@ openssl rand -base64 32
 ### 4.1. На сервере
 
 ```bash
-ssh vds.server1
+ssh your-user@your-server.example.com
 cd /opt/bb-license-server
 
 # Проверьте статус контейнеров
