@@ -48,10 +48,28 @@ jobs:
           cp Dockerfile.dev deploy-temp/ || true
           cp docker-compose.prod.yml deploy-temp/ || true
           cp docker-compose.full.yml deploy-temp/ || true
-          cp .env.production.example deploy-temp/ || true
-          cp .dockerignore deploy-temp/ || true
+          
+          # Copy .env files (check different possible names)
+          if [ -f .env.production.example ]; then
+            cp .env.production.example deploy-temp/
+          elif [ -f env.production.example ]; then
+            cp env.production.example deploy-temp/.env.production.example
+          elif [ -f env.example ]; then
+            cp env.example deploy-temp/.env.production.example
+          elif [ -f .env.example ]; then
+            cp .env.example deploy-temp/.env.production.example
+          fi
+          
+          # Copy other files
+          [ -f .dockerignore ] && cp .dockerignore deploy-temp/ || true
           [ -f remote-deploy.sh ] && cp remote-deploy.sh deploy-temp/ || true
           [ -f start.sh ] && cp start.sh deploy-temp/ || true
+          
+          # List copied files for debugging
+          echo "Files in deploy-temp:"
+          ls -la deploy-temp/
+          echo "Looking for .env files:"
+          find deploy-temp -name "*.env*" -o -name "*env*" || true
           
           # Set proper permissions
           chmod -R 755 deploy-temp
@@ -115,14 +133,34 @@ jobs:
             # Ensure .env file exists
             if [ ! -f .env ]; then
               echo "⚠️  .env file not found, creating from example..."
+              # Check for different possible names
               if [ -f .env.production.example ]; then
                 cp .env.production.example .env
+                echo "✅ Created .env from .env.production.example"
+                echo "❌ Please configure .env file on server before deploying!"
+                exit 1
+              elif [ -f env.production.example ]; then
+                cp env.production.example .env
+                echo "✅ Created .env from env.production.example"
+                echo "❌ Please configure .env file on server before deploying!"
+                exit 1
+              elif [ -f env.example ]; then
+                cp env.example .env
+                echo "✅ Created .env from env.example"
+                echo "❌ Please configure .env file on server before deploying!"
+                exit 1
+              elif [ -f .env.example ]; then
+                cp .env.example .env
+                echo "✅ Created .env from .env.example"
                 echo "❌ Please configure .env file on server before deploying!"
                 exit 1
               else
-                echo "❌ .env.production.example not found!"
+                echo "❌ No .env example file found! Available files:"
+                ls -la | grep -E "\.env|env\." || ls -la
                 exit 1
               fi
+            else
+              echo "✅ .env file already exists"
             fi
             
             # Make remote-deploy.sh executable if it exists
