@@ -94,7 +94,6 @@ export interface AppConfig {
   licenseKeyPrefix: string;
   licenseKeyLength: number;
   bcryptRounds: number;
-  corsOrigin: string;
   corsAllowedOrigins: string[];
   logLevel: string;
   logFile: string;

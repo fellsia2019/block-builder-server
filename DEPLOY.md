@@ -35,7 +35,7 @@ nano .env
 **Критически важно настроить:**
 - `DB_PASSWORD` - сильный пароль для PostgreSQL
 - `JWT_SECRET` - случайная строка минимум 32 символа
-- `CORS_ORIGIN` и `CORS_ALLOWED_ORIGINS` - ваши домены
+- `CORS_ALLOWED_ORIGINS` - список ваших доменов (через запятую)
 
 ### 3. Деплой
 

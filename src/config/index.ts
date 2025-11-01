@@ -13,10 +13,9 @@ export const config: AppConfig = {
   licenseKeyPrefix: process.env['LICENSE_KEY_PREFIX'] || 'BB',
   licenseKeyLength: parseInt(process.env['LICENSE_KEY_LENGTH'] || '16', 10),
   bcryptRounds: parseInt(process.env['BCRYPT_ROUNDS'] || '12', 10),
-  corsOrigin: process.env['CORS_ORIGIN'] || 'http://localhost:3000',
   corsAllowedOrigins: process.env['CORS_ALLOWED_ORIGINS'] 
     ? process.env['CORS_ALLOWED_ORIGINS'].split(',').map(o => o.trim())
-    : ['http://localhost:3011', 'http://localhost:3000'],
+    : ['http://localhost:3000'],
   logLevel: process.env['LOG_LEVEL'] || 'info',
   logFile: process.env['LOG_FILE'] || 'logs/server.log'
 };

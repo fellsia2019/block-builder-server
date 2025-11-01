@@ -387,7 +387,6 @@ vi .env
 
 DB_PASSWORD=YOUR_STRONG_PASSWORD_HERE        # Сгенерируйте сильный пароль!
 JWT_SECRET=YOUR_VERY_LONG_RANDOM_SECRET_KEY  # Минимум 32 символа, случайная строка!
-CORS_ORIGIN=https://your-domain.com          # Ваш production домен
 CORS_ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
 ```
 
