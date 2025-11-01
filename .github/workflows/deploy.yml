@@ -29,6 +29,8 @@ jobs:
         run: |
           docker save bb-license-server:latest -o image.tar
           gzip image.tar
+          ls -lh image.tar.gz
+          pwd
 
       - name: Prepare files for deployment
         run: |
@@ -66,14 +68,29 @@ jobs:
           overwrite: true
 
       - name: Upload Docker image to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USER }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_SSH_PORT || 22 }}
-          source: "image.tar.gz"
-          target: "/opt/bb-license-server/"
+        run: |
+          # Save SSH key to temp file
+          echo "${{ secrets.VDS_SSH_KEY }}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          
+          # Ensure directory exists on server
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -p ${{ secrets.VDS_SSH_PORT || 22 }} \
+              -i /tmp/deploy_key \
+              ${{ secrets.VDS_USER }}@${{ secrets.VDS_HOST }} \
+              "mkdir -p /opt/bb-license-server"
+          
+          # Upload file via scp
+          scp -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -P ${{ secrets.VDS_SSH_PORT || 22 }} \
+              -i /tmp/deploy_key \
+              image.tar.gz \
+              ${{ secrets.VDS_USER }}@${{ secrets.VDS_HOST }}:/opt/bb-license-server/
+          
+          # Cleanup
+          rm -f /tmp/deploy_key
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
