@@ -3,33 +3,19 @@ import { Request } from 'express';
 export function extractDomainFromRequest(req: Request): string | null {
   let domain: string | null = null;
   
-  const forwardedHost = req.headers['x-forwarded-host'];
-  if (forwardedHost) {
-    const host = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
-    if (host && typeof host === 'string') {
-      domain = removePort(host);
+  // Сначала проверяем Origin - это заголовок, который показывает домен клиента
+  // (откуда пришел запрос), а не домен сервера (куда пришел запрос)
+  const origin = req.headers.origin;
+  if (origin && typeof origin === 'string') {
+    try {
+      const url = new URL(origin);
+      domain = url.hostname;
+    } catch {
+      domain = removePort(origin);
     }
   }
 
-  if (!domain) {
-    const host = req.headers.host;
-    if (host && typeof host === 'string') {
-      domain = removePort(host);
-    }
-  }
-
-  if (!domain) {
-    const origin = req.headers.origin;
-    if (origin && typeof origin === 'string') {
-      try {
-        const url = new URL(origin);
-        domain = url.hostname;
-      } catch {
-        domain = removePort(origin);
-      }
-    }
-  }
-
+  // Если Origin не найден, проверяем Referer
   if (!domain) {
     const referer = req.headers.referer || req.headers['referrer'];
     if (referer && typeof referer === 'string') {
@@ -37,8 +23,28 @@ export function extractDomainFromRequest(req: Request): string | null {
         const url = new URL(referer);
         domain = url.hostname;
       } catch {
-        return null;
+        // Пропускаем некорректный Referer
       }
+    }
+  }
+
+  // X-Forwarded-Host используется прокси-серверами и может содержать оригинальный хост
+  if (!domain) {
+    const forwardedHost = req.headers['x-forwarded-host'];
+    if (forwardedHost) {
+      const host = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
+      if (host && typeof host === 'string') {
+        domain = removePort(host);
+      }
+    }
+  }
+
+  // Host - это домен сервера, используем только если ничего другого не найдено
+  // (например, для прямых запросов без Origin/Referer)
+  if (!domain) {
+    const host = req.headers.host;
+    if (host && typeof host === 'string') {
+      domain = removePort(host);
     }
   }
 

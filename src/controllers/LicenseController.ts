@@ -8,7 +8,7 @@ export class LicenseController {
 
   async verifyLicense(req: Request, res: Response): Promise<void> {
     try {
-      const { key } = req.body as { key?: string };
+      const { key, domain: domainFromBody } = req.body as { key?: string; domain?: string };
       
       if (!key) {
         res.status(400).json({
@@ -19,7 +19,8 @@ export class LicenseController {
         return;
       }
 
-      const domain = extractDomainFromRequest(req);
+      // Сначала используем домен из body, если он указан, иначе извлекаем из заголовков
+      const domain = domainFromBody || extractDomainFromRequest(req);
       
       if (!domain) {
         res.status(400).json({
