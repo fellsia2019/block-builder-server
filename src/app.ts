@@ -39,6 +39,15 @@ class App {
     this.app.use(securityHeaders);
     this.app.use(generalRateLimit);
     
+    // Serve static files (favicon, etc.)
+    this.app.use(express.static('public', {
+      setHeaders: (res, path) => {
+        if (path.endsWith('.svg')) {
+          res.setHeader('Content-Type', 'image/svg+xml');
+        }
+      }
+    }));
+    
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     
@@ -54,6 +63,18 @@ class App {
   }
 
   private setupRoutes(): void {
+    // Favicon routes
+    this.app.get('/favicon.ico', (_req, res) => {
+      res.redirect('/favicon.svg');
+    });
+    this.app.get('/favicon.svg', (_req, res) => {
+      res.sendFile('favicon.svg', { root: 'public' }, (err) => {
+        if (err) {
+          res.status(404).end();
+        }
+      });
+    });
+
     this.app.get('/health', (_req, res) => {
       res.json({ 
         status: 'ok', 

@@ -44,6 +44,7 @@ RUN npm ci --only=production && \
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
+COPY public ./public
 
 # Create logs directory with proper permissions
 RUN mkdir -p logs && \
