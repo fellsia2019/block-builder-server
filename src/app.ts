@@ -7,6 +7,10 @@ import { LicenseModel } from './models/LicenseModel';
 import { LicenseService } from './services/LicenseService';
 import { LicenseController } from './controllers/LicenseController';
 import { createLicenseRoutes } from './routes/licenseRoutes';
+import { FeedbackModel } from './models/FeedbackModel';
+import { FeedbackService } from './services/FeedbackService';
+import { FeedbackController } from './controllers/FeedbackController';
+import { createFeedbackRoutes } from './routes/feedbackRoutes';
 import { 
   conditionalCorsMiddleware,
   securityHeaders, 
@@ -89,6 +93,13 @@ class App {
 
     this.app.use('/api/license', conditionalCorsMiddleware);
     this.app.use('/api/license', createLicenseRoutes(licenseController));
+
+    const feedbackModel = new FeedbackModel(this.db);
+    const feedbackService = new FeedbackService(feedbackModel);
+    const feedbackController = new FeedbackController(feedbackService);
+
+    this.app.use('/api/feedback', conditionalCorsMiddleware);
+    this.app.use('/api/feedback', createFeedbackRoutes(feedbackController));
     
     this.app.get('/', (_req, res) => {
       res.json({
@@ -99,7 +110,10 @@ class App {
           verify: 'POST /api/license/verify',
           create: 'POST /api/license/create',
           stats: 'GET /api/license/stats',
-          webhook: 'POST /api/license/webhook'
+          webhook: 'POST /api/license/webhook',
+          feedback: 'POST /api/feedback',
+          feedbackList: 'GET /api/feedback',
+          feedbackStats: 'GET /api/feedback/stats'
         }
       });
     });

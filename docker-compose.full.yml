@@ -41,9 +41,9 @@ services:
       DB_PASSWORD: password
       DB_SSL: false
       JWT_SECRET: dev-jwt-secret-key
-      CORS_ALLOWED_ORIGINS: https://api.blockbuilder
-    expose:
-      - "3010"
+      CORS_ALLOWED_ORIGINS: http://localhost:3010,http://localhost:3005,http://localhost:3011,http://localhost:3000,https://api.blockbuilder
+    ports:
+      - "3010:3010"
     volumes:
       - ./src:/app/src
       - ./logs:/app/logs
