@@ -1,9 +1,7 @@
 import { Router } from 'express';
 import { FeedbackController } from '../controllers/FeedbackController';
 import { 
-  validateRequest, 
-  validateQuery, 
-  validateParams 
+  validateRequest
 } from '../middleware/validation';
 import { 
   createFeedbackSchema,
