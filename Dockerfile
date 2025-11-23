@@ -50,7 +50,8 @@ COPY public ./public
 
 # Create logs and uploads directories with proper permissions
 RUN mkdir -p logs uploads && \
-    chown -R nodejs:nodejs /app
+    chown -R nodejs:nodejs /app && \
+    chmod -R 755 /app/uploads
 
 # Switch to non-root user
 USER nodejs
