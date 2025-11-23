@@ -10,6 +10,12 @@ export const createUploadRoutes = (uploadController: UploadController): Router =
   // Rate limit для загрузки файлов - более строгий
   const uploadRateLimit = createRateLimit(60000, 20); // 20 запросов в минуту
 
+  // Явная обработка OPTIONS запросов (preflight) - CORS middleware должен обработать это,
+  // но на всякий случай добавляем здесь тоже
+  router.options('/', (_req: Request, res: Response): void => {
+    res.sendStatus(200);
+  });
+
   // Обработчик ошибок multer (должен быть middleware с 4 параметрами)
   const handleMulterError = (err: any, _req: Request, res: Response, next: NextFunction): void => {
     if (err instanceof multer.MulterError) {

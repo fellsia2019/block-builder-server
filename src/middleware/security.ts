@@ -22,14 +22,20 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
   const origin = req.headers.origin;
   const allowedOrigins = config.corsAllowedOrigins;
 
+  // Нормализуем origin (убираем слеш в конце, если есть)
+  const normalizedOrigin = origin ? origin.replace(/\/$/, '') : null;
+  
+  // Нормализуем список разрешенных origins
+  const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''));
+
   // Публичные эндпоинты - только /verify открыт для всех доменов
   const publicEndpoints = ['/verify'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.endsWith(endpoint));
 
   if (isPublicEndpoint) {
     // /verify - полностью открыт для всех доменов
-    if (origin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
+    if (normalizedOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', normalizedOrigin);
     } else {
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
@@ -42,8 +48,8 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
     }
   } else {
     // Для защищенных эндпоинтов - строгая проверка origins
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
+    if (normalizedOrigin && normalizedAllowedOrigins.includes(normalizedOrigin)) {
+      res.setHeader('Access-Control-Allow-Origin', normalizedOrigin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
       res.setHeader('Access-Control-Allow-Credentials', 'true');
