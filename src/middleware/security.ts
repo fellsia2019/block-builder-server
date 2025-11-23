@@ -22,26 +22,19 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
   const origin = req.headers.origin;
   const allowedOrigins = config.corsAllowedOrigins;
 
-  // Публичные эндпоинты (verify, upload) - проверяем разрешенные origins
-  const publicEndpoints = ['/verify', '/upload'];
+  // Публичные эндпоинты - только /verify открыт для всех доменов
+  const publicEndpoints = ['/verify'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.endsWith(endpoint));
 
   if (isPublicEndpoint) {
-    // Для публичных эндпоинтов проверяем, что origin в списке разрешенных
-    if (origin && allowedOrigins.includes(origin)) {
+    // /verify - полностью открыт для всех доменов
+    if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    } else if (!origin) {
-      // Если нет origin (например, прямой запрос), разрешаем
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     } else {
-      // Origin не разрешен - не устанавливаем CORS заголовки
-      // Запрос будет заблокирован браузером
+      res.setHeader('Access-Control-Allow-Origin', '*');
     }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
