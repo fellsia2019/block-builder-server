@@ -57,9 +57,10 @@ class App {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     
-    // Serve uploaded files
+    // Serve uploaded files (CORS handled by nginx)
     this.app.use('/uploads', express.static('uploads', {
       setHeaders: (res, filePath) => {
+        // Устанавливаем правильный Content-Type для SVG
         if (filePath.endsWith('.svg')) {
           res.setHeader('Content-Type', 'image/svg+xml');
         }
