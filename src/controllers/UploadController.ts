@@ -7,7 +7,7 @@ import logger from '../utils/logger';
 
 // Настройка хранилища для multer
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     const uploadDir = path.join(process.cwd(), 'uploads');
     // Создаем директорию если её нет
     if (!fs.existsSync(uploadDir)) {
@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     // Генерируем уникальное имя файла
     const ext = path.extname(file.originalname);
     const filename = `${uuidv4()}${ext}`;
@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 });
 
 // Фильтр файлов - разрешаем только изображения
-const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
   
   if (allowedMimes.includes(file.mimetype)) {
