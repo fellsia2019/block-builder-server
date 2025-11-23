@@ -16,6 +16,7 @@ export const config: AppConfig = {
   corsAllowedOrigins: process.env['CORS_ALLOWED_ORIGINS'] 
     ? process.env['CORS_ALLOWED_ORIGINS'].split(',').map(o => o.trim())
     : ['http://localhost:3000'],
+  apiBaseUrl: process.env['API_BASE_URL'] || 'http://localhost:3010',
   logLevel: process.env['LOG_LEVEL'] || 'info',
   logFile: process.env['LOG_FILE'] || 'logs/server.log'
 };

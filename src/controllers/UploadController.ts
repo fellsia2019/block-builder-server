@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
+import { config } from '../config';
 
 // Настройка хранилища для multer
 const storage = multer.diskStorage({
@@ -53,8 +54,9 @@ export class UploadController {
         return;
       }
 
-      // Генерируем URL для загруженного файла
-      const fileUrl = `/uploads/${req.file.filename}`;
+      // Генерируем абсолютный URL для загруженного файла
+      const baseUrl = config.apiBaseUrl.replace(/\/$/, ''); // Убираем слеш в конце если есть
+      const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
       
       logger.info('File uploaded successfully', {
         filename: req.file.filename,
