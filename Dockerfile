@@ -46,8 +46,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
 COPY public ./public
 
-# Create logs directory with proper permissions
-RUN mkdir -p logs && \
+# Create logs and uploads directories with proper permissions
+RUN mkdir -p logs uploads && \
     chown -R nodejs:nodejs /app
 
 # Switch to non-root user

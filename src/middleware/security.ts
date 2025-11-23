@@ -20,32 +20,41 @@ export const generalRateLimit = createRateLimit();
 
 export const conditionalCorsMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const origin = req.headers.origin;
+  const allowedOrigins = config.corsAllowedOrigins;
 
-  const publicEndpoints = ['/verify'];
+  // Публичные эндпоинты (verify, upload) - проверяем разрешенные origins
+  const publicEndpoints = ['/verify', '/upload'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.endsWith(endpoint));
 
   if (isPublicEndpoint) {
-    if (origin) {
+    // Для публичных эндпоинтов проверяем, что origin в списке разрешенных
+    if (origin && allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else if (!origin) {
+      // Если нет origin (например, прямой запрос), разрешаем
       res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    } else {
+      // Origin не разрешен - не устанавливаем CORS заголовки
+      // Запрос будет заблокирован браузером
     }
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
       return;
     }
   } else {
-    const allowedOrigins = config.corsAllowedOrigins;
-
+    // Для защищенных эндпоинтов - строгая проверка origins
     if (origin && allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);

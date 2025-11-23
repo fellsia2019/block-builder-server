@@ -11,6 +11,8 @@ import { FeedbackModel } from './models/FeedbackModel';
 import { FeedbackService } from './services/FeedbackService';
 import { FeedbackController } from './controllers/FeedbackController';
 import { createFeedbackRoutes } from './routes/feedbackRoutes';
+import { UploadController } from './controllers/UploadController';
+import { createUploadRoutes } from './routes/uploadRoutes';
 import { 
   conditionalCorsMiddleware,
   securityHeaders, 
@@ -54,6 +56,15 @@ class App {
     
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    
+    // Serve uploaded files
+    this.app.use('/uploads', express.static('uploads', {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.svg')) {
+          res.setHeader('Content-Type', 'image/svg+xml');
+        }
+      }
+    }));
     
     this.app.use(compression());
     
@@ -100,6 +111,10 @@ class App {
 
     this.app.use('/api/feedback', conditionalCorsMiddleware);
     this.app.use('/api/feedback', createFeedbackRoutes(feedbackController));
+
+    const uploadController = new UploadController();
+    this.app.use('/api/upload', conditionalCorsMiddleware);
+    this.app.use('/api/upload', createUploadRoutes(uploadController));
     
     this.app.get('/', (_req, res) => {
       res.json({
@@ -113,7 +128,8 @@ class App {
           webhook: 'POST /api/license/webhook',
           feedback: 'POST /api/feedback',
           feedbackList: 'GET /api/feedback',
-          feedbackStats: 'GET /api/feedback/stats'
+          feedbackStats: 'GET /api/feedback/stats',
+          upload: 'POST /api/upload'
         }
       });
     });
