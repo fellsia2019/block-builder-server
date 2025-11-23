@@ -10,7 +10,7 @@ export const createUploadRoutes = (uploadController: UploadController): Router =
   // Rate limit для загрузки файлов - более строгий
   const uploadRateLimit = createRateLimit(60000, 20); // 20 запросов в минуту
 
-  // Обработчик ошибок multer
+  // Обработчик ошибок multer (должен быть middleware с 4 параметрами)
   const handleMulterError = (err: any, _req: Request, res: Response, next: NextFunction): void => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -21,7 +21,8 @@ export const createUploadRoutes = (uploadController: UploadController): Router =
       }
       logger.error('Multer error:', err);
       res.status(400).json({
-        error: err.message || 'File upload error'
+        error: err.message || 'File upload error',
+        code: err.code
       });
       return;
     }
@@ -44,6 +45,7 @@ export const createUploadRoutes = (uploadController: UploadController): Router =
       try {
         await uploadController.uploadFile(req, res);
       } catch (error) {
+        logger.error('Upload controller error:', error);
         next(error);
       }
     }
