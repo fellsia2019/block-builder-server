@@ -13,7 +13,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install ALL dependencies (including dev dependencies for build)
-RUN npm ci
+# Используем npm install в builder stage, так как package-lock.json может быть не синхронизирован
+RUN npm install --prefer-offline --no-audit
 
 # Copy source code
 COPY src ./src
