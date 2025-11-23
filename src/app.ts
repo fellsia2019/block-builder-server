@@ -57,9 +57,22 @@ class App {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     
-    // Serve uploaded files (CORS handled by nginx)
+    // CORS middleware for /uploads (must be before express.static)
+    this.app.use('/uploads', conditionalCorsMiddleware);
+    
+    // Serve uploaded files with CORS headers
     this.app.use('/uploads', express.static('uploads', {
-      setHeaders: (res, filePath) => {
+      setHeaders: (res, filePath, stat) => {
+        // Устанавливаем CORS заголовки для всех запросов к /uploads
+        const origin = (res.req as any)?.headers?.origin;
+        if (origin) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        } else {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+        
         // Устанавливаем правильный Content-Type для SVG
         if (filePath.endsWith('.svg')) {
           res.setHeader('Content-Type', 'image/svg+xml');

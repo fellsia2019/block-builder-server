@@ -39,7 +39,12 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
     } else {
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    // Для /uploads только GET, для /verify - POST
+    if (req.path.startsWith('/uploads')) {
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    } else {
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    }
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
     if (req.method === 'OPTIONS') {
