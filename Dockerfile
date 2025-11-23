@@ -29,7 +29,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Install only runtime dependencies for native modules (if needed)
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init su-exec
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -48,13 +48,18 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
 COPY public ./public
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Create logs and uploads directories with proper permissions
+# Создаем директории и устанавливаем права ДО переключения на nodejs пользователя
 RUN mkdir -p logs uploads && \
     chown -R nodejs:nodejs /app && \
-    chmod -R 755 /app/uploads
+    chmod -R 775 /app/uploads && \
+    chmod -R 775 /app/logs
 
-# Switch to non-root user
-USER nodejs
+# Не переключаемся на nodejs здесь - entrypoint скрипт сделает это после установки прав
 
 # Expose port
 EXPOSE 3006
@@ -63,8 +68,8 @@ EXPOSE 3006
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3006/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
-# Use dumb-init for proper signal handling
-ENTRYPOINT ["dumb-init", "--"]
+# Use entrypoint script to set permissions and then start with dumb-init
+ENTRYPOINT ["docker-entrypoint.sh"]
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Start the application with dumb-init
+CMD ["dumb-init", "--", "node", "dist/index.js"]
