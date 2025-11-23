@@ -142,15 +142,20 @@ class App {
 
   async start(): Promise<void> {
     try {
-      const isConnected = await this.db.testConnection();
-      if (!isConnected) {
-        throw new Error('Database connection failed');
+      // Для тестирования upload можно временно отключить проверку БД
+      if (process.env['SKIP_DB_CHECK'] !== 'true') {
+        const isConnected = await this.db.testConnection();
+        if (!isConnected) {
+          throw new Error('Database connection failed');
+        }
+        
+        logger.info('Database connected successfully');
+      } else {
+        logger.info('Database check skipped (SKIP_DB_CHECK=true)');
       }
-      
-      logger.info('Database connected successfully');
 
       // Run migrations automatically
-      if (process.env['AUTO_MIGRATE'] !== 'false') {
+      if (process.env['AUTO_MIGRATE'] !== 'false' && process.env['SKIP_DB_CHECK'] !== 'true') {
         try {
           logger.info('Running database migrations...');
           const migrationRunner = new MigrationRunner(this.db);
