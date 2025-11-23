@@ -62,7 +62,7 @@ class App {
     
     // Serve uploaded files with CORS headers
     this.app.use('/uploads', express.static('uploads', {
-      setHeaders: (res, filePath, stat) => {
+      setHeaders: (res, filePath) => {
         // Устанавливаем CORS заголовки для всех запросов к /uploads
         const origin = (res.req as any)?.headers?.origin;
         if (origin) {
