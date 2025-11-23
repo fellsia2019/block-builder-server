@@ -28,18 +28,18 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
   // Нормализуем список разрешенных origins
   const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''));
 
-  // Публичные эндпоинты - только /verify открыт для всех доменов
-  const publicEndpoints = ['/verify'];
-  const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.endsWith(endpoint));
+  // Публичные эндпоинты - /verify и /uploads открыты для всех доменов
+  const publicEndpoints = ['/verify', '/uploads'];
+  const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.startsWith(endpoint));
 
   if (isPublicEndpoint) {
-    // /verify - полностью открыт для всех доменов
+    // /verify и /uploads - полностью открыты для всех доменов
     if (normalizedOrigin) {
       res.setHeader('Access-Control-Allow-Origin', normalizedOrigin);
     } else {
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
     if (req.method === 'OPTIONS') {
