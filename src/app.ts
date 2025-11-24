@@ -97,7 +97,16 @@ class App {
     // браузер не отправляет Origin, поэтому всегда устанавливаем *
     this.app.options('/uploads*', conditionalCorsMiddleware);
     this.app.get('/uploads/:filename', conditionalCorsMiddleware, (req, res) => {
-      const filename = req.params.filename;
+      const filename = req.params['filename'];
+      
+      // Проверяем наличие filename
+      if (!filename) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.status(400).json({ error: 'Filename is required' });
+        return;
+      }
+      
       const filePath = path.join(process.cwd(), 'uploads', filename);
       
       // Проверяем существование файла
