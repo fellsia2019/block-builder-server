@@ -42,7 +42,10 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
 
   if (isPublicEndpoint) {
     // /api/license/verify и /uploads - полностью открыты для всех доменов
-    if (normalizedOrigin) {
+    // Для /uploads всегда используем *, так как <img> теги не отправляют Origin
+    if (req.path.startsWith('/uploads')) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    } else if (normalizedOrigin) {
       res.setHeader('Access-Control-Allow-Origin', normalizedOrigin);
     } else {
       res.setHeader('Access-Control-Allow-Origin', '*');

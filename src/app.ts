@@ -1,6 +1,8 @@
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
+import path from 'path';
+import fs from 'fs';
 import { config } from './config';
 import { Database } from './config/database';
 import { LicenseModel } from './models/LicenseModel';
@@ -40,6 +42,7 @@ class App {
     
     this.app.use(helmet({
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
       contentSecurityPolicy: false
     }));
     this.app.use(securityHeaders);
@@ -56,32 +59,6 @@ class App {
     
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-    
-    // CORS middleware for /uploads (must be before express.static)
-    // Явно обрабатываем OPTIONS запросы для /uploads
-    this.app.options('/uploads*', conditionalCorsMiddleware);
-    this.app.use('/uploads', conditionalCorsMiddleware);
-    
-    // Serve uploaded files - CORS headers are set by conditionalCorsMiddleware
-    this.app.use('/uploads', express.static('uploads', {
-      setHeaders: (res, filePath) => {
-        // Устанавливаем CORS заголовки для всех запросов к /uploads
-        // Это нужно, так как express.static может не вызывать middleware для существующих файлов
-        const origin = (res.req as any)?.headers?.origin;
-        if (origin) {
-          res.setHeader('Access-Control-Allow-Origin', origin);
-        } else {
-          res.setHeader('Access-Control-Allow-Origin', '*');
-        }
-        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-        
-        // Устанавливаем правильный Content-Type для SVG
-        if (filePath.endsWith('.svg')) {
-          res.setHeader('Content-Type', 'image/svg+xml');
-        }
-      }
-    }));
     
     this.app.use(compression());
     
@@ -112,6 +89,53 @@ class App {
         status: 'ok', 
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
+      });
+    });
+
+    // Явный роут для /uploads с CORS - гарантирует установку заголовков
+    // CORS middleware устанавливает заголовки, но для изображений в <img> тегах
+    // браузер не отправляет Origin, поэтому всегда устанавливаем *
+    this.app.options('/uploads*', conditionalCorsMiddleware);
+    this.app.get('/uploads/:filename', conditionalCorsMiddleware, (req, res) => {
+      const filename = req.params.filename;
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      
+      // Проверяем существование файла
+      if (!fs.existsSync(filePath)) {
+        // Устанавливаем CORS даже для 404 - всегда * для /uploads
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.status(404).json({ error: 'File not found' });
+        return;
+      }
+      
+      // Устанавливаем CORS заголовки явно - всегда * для /uploads
+      // (middleware уже установил, но на всякий случай дублируем)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+      
+      // Определяем Content-Type
+      const ext = path.extname(filename).toLowerCase();
+      if (ext === '.svg') {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      } else if (ext === '.jpg' || ext === '.jpeg') {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (ext === '.png') {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (ext === '.gif') {
+        res.setHeader('Content-Type', 'image/gif');
+      } else if (ext === '.webp') {
+        res.setHeader('Content-Type', 'image/webp');
+      }
+      
+      res.sendFile(filePath, (err) => {
+        if (err) {
+          logger.error('Error sending file:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Error sending file' });
+          }
+        }
       });
     });
 
