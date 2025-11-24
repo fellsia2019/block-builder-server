@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { config } from '../config';
 
-export const createRateLimit = (windowMs?: number, max?: number) => {
+export const createRateLimit = (windowMs?: number, max?: number, skipPaths?: string[]) => {
   return rateLimit({
     windowMs: windowMs || config.rateLimitWindowMs,
     max: max || config.rateLimitMaxRequests,
@@ -11,12 +11,20 @@ export const createRateLimit = (windowMs?: number, max?: number) => {
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+      // Пропускаем публичные эндпоинты из rate limiting
+      if (skipPaths) {
+        return skipPaths.some(path => req.path.startsWith(path));
+      }
+      // По умолчанию пропускаем /uploads и /api/license/verify
+      return req.path.startsWith('/uploads') || req.path.startsWith('/api/license/verify');
+    }
   });
 };
 
 export const licenseVerificationRateLimit = createRateLimit(60000, 300);
 export const licenseCreationRateLimit = createRateLimit(300000, 300);
-export const generalRateLimit = createRateLimit();
+export const generalRateLimit = createRateLimit(undefined, undefined, ['/uploads', '/api/license/verify']);
 
 export const conditionalCorsMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const origin = req.headers.origin;
@@ -28,18 +36,18 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
   // Нормализуем список разрешенных origins
   const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''));
 
-  // Публичные эндпоинты - /verify и /uploads открыты для всех доменов
-  const publicEndpoints = ['/verify', '/uploads'];
+  // Публичные эндпоинты - /api/license/verify и /uploads открыты для всех доменов
+  const publicEndpoints = ['/api/license/verify', '/uploads'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.startsWith(endpoint));
 
   if (isPublicEndpoint) {
-    // /verify и /uploads - полностью открыты для всех доменов
+    // /api/license/verify и /uploads - полностью открыты для всех доменов
     if (normalizedOrigin) {
       res.setHeader('Access-Control-Allow-Origin', normalizedOrigin);
     } else {
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
-    // Для /uploads только GET, для /verify - POST
+    // Для /uploads только GET, для /api/license/verify - POST
     if (req.path.startsWith('/uploads')) {
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     } else {

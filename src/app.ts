@@ -58,12 +58,15 @@ class App {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     
     // CORS middleware for /uploads (must be before express.static)
+    // Явно обрабатываем OPTIONS запросы для /uploads
+    this.app.options('/uploads*', conditionalCorsMiddleware);
     this.app.use('/uploads', conditionalCorsMiddleware);
     
-    // Serve uploaded files with CORS headers
+    // Serve uploaded files - CORS headers are set by conditionalCorsMiddleware
     this.app.use('/uploads', express.static('uploads', {
       setHeaders: (res, filePath) => {
         // Устанавливаем CORS заголовки для всех запросов к /uploads
+        // Это нужно, так как express.static может не вызывать middleware для существующих файлов
         const origin = (res.req as any)?.headers?.origin;
         if (origin) {
           res.setHeader('Access-Control-Allow-Origin', origin);
