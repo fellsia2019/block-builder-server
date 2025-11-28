@@ -37,8 +37,20 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
   const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''));
 
   // Публичные эндпоинты - /api/license/verify и /uploads открыты для всех доменов
-  const publicEndpoints = ['/api/license/verify', '/uploads'];
-  const isPublicEndpoint = publicEndpoints.some(endpoint => req.path.startsWith(endpoint));
+  // Проверяем как req.path (может быть /verify после роутера), так и originalUrl
+  const fullPath = req.originalUrl || req.path;
+  const baseUrl = req.baseUrl || '';
+  const currentPath = req.path;
+  const combinedPath = baseUrl + currentPath;
+  
+  // Проверяем все возможные варианты пути
+  const publicEndpoints = ['/api/license/verify', '/uploads', '/verify'];
+  const isPublicEndpoint = publicEndpoints.some(endpoint => 
+    fullPath.startsWith(endpoint) || 
+    combinedPath.startsWith(endpoint) ||
+    currentPath.startsWith(endpoint) ||
+    (baseUrl === '/api/license' && currentPath === '/verify')
+  );
 
   if (isPublicEndpoint) {
     // /api/license/verify и /uploads - полностью открыты для всех доменов
@@ -50,7 +62,10 @@ export const conditionalCorsMiddleware = (req: Request, res: Response, next: Nex
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
     // Для /uploads только GET, для /api/license/verify - POST
-    if (req.path.startsWith('/uploads')) {
+    const isUploadsPath = fullPath.startsWith('/uploads') || 
+                          combinedPath.startsWith('/uploads') || 
+                          currentPath.startsWith('/uploads');
+    if (isUploadsPath) {
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     } else {
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

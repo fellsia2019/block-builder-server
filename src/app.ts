@@ -152,6 +152,8 @@ class App {
     const licenseService = new LicenseService(licenseModel);
     const licenseController = new LicenseController(licenseService);
 
+    // Явная обработка OPTIONS для /api/license/verify (публичный эндпоинт)
+    this.app.options('/api/license/verify', conditionalCorsMiddleware);
     this.app.use('/api/license', conditionalCorsMiddleware);
     this.app.use('/api/license', createLicenseRoutes(licenseController));
 
