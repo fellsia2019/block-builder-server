@@ -62,7 +62,6 @@ jobs:
           
           # Copy other files
           [ -f .dockerignore ] && cp .dockerignore deploy-temp/ || true
-          [ -f remote-deploy.sh ] && cp remote-deploy.sh deploy-temp/ || true
           [ -f start.sh ] && cp start.sh deploy-temp/ || true
           
           # List copied files for debugging
@@ -176,10 +175,6 @@ jobs:
               echo "✅ .env file already exists"
             fi
             
-            # Make remote-deploy.sh executable if it exists
-            if [ -f remote-deploy.sh ]; then
-              chmod +x remote-deploy.sh
-            fi
             
             # Detect docker compose command (docker compose or docker-compose)
             if docker compose version > /dev/null 2>&1; then
