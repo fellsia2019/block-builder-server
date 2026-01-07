@@ -193,6 +193,23 @@ jobs:
             
             echo "📦 Using: $DOCKER_COMPOSE_CMD"
             
+            # Stop host nginx to free ports 80/443 for Docker nginx
+            echo "🛑 Stopping host nginx to free ports 80/443..."
+            sudo systemctl stop nginx 2>/dev/null || echo "⚠️  Could not stop nginx (may not be running or need password)"
+            sudo systemctl disable nginx 2>/dev/null || echo "⚠️  Could not disable nginx"
+            
+            # Check if ports are free
+            if ss -tlnp | grep -E ':(80|443)' > /dev/null; then
+              echo "⚠️  WARNING: Ports 80/443 are still in use!"
+              ss -tlnp | grep -E ':(80|443)'
+              echo "⚠️  Trying to kill processes on ports 80/443..."
+              sudo fuser -k 80/tcp 2>/dev/null || true
+              sudo fuser -k 443/tcp 2>/dev/null || true
+              sleep 2
+            else
+              echo "✅ Ports 80/443 are free"
+            fi
+            
             # Stop existing containers
             echo "🛑 Stopping existing containers..."
             $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml down || true
