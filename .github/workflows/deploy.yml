@@ -205,9 +205,18 @@ jobs:
               echo "✅ Ports 80/443 are free"
             fi
             
-            # Stop existing containers
+            # Stop and remove existing containers
             echo "🛑 Stopping existing containers..."
             $DOCKER_COMPOSE_CMD -f docker-compose.prod.yml down || true
+            
+            # Remove containers by name if they exist (in case they weren't managed by compose)
+            echo "🗑️  Removing containers by name..."
+            docker rm -f bb-landing-prod 2>/dev/null || true
+            docker rm -f bb-admin-portal-prod 2>/dev/null || true
+            docker rm -f bb-demo-bb-prod 2>/dev/null || true
+            docker rm -f bb-license-server-prod 2>/dev/null || true
+            docker rm -f bb-nginx-prod 2>/dev/null || true
+            docker rm -f bb-postgres-prod 2>/dev/null || true
             
             # Build/rebuild nginx if needed (only on first deploy or config changes)
             echo "🔨 Building nginx container..."
