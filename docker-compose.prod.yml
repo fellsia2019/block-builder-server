@@ -85,7 +85,7 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Landing (deep-bb.ru)
+  # Landing (block-builder.ru)
   landing:
     image: block-builder-landing:latest
     container_name: bb-landing-prod
@@ -114,7 +114,7 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Admin Portal (admin.deep-bb.ru)
+  # Admin Portal (admin.block-builder.ru)
   admin-portal:
     image: block-builder-admin-portal:latest
     container_name: bb-admin-portal-prod
@@ -123,8 +123,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3011
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.deep-bb.ru}
-      # NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.block-builder.ru}  # Старый домен
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.block-builder.ru}
       NEXT_PUBLIC_ADMIN_SECRET: ${NEXT_PUBLIC_ADMIN_SECRET}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
@@ -149,7 +148,7 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Demo BB (demo.deep-bb.ru)
+  # Demo BB (demo.block-builder.ru)
   demo-bb:
     image: block-builder-demo-bb:latest
     container_name: bb-demo-bb-prod
