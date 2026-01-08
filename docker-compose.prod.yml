@@ -215,5 +215,5 @@ volumes:
 networks:
   bb-shared-network:
     name: bb-shared-network
-    driver: bridge
+    external: true
 
